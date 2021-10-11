@@ -1,6 +1,6 @@
 include("lagrangian_subproblem.jl")
 
-function lagrangean_heuristic(n, d, x_s, y_s)
+function lagrangian_heuristic(n, d, x_s, y_s)
     N = 1:n
     x, y = copy(x_s), copy(y_s)
     C = [i for i in N if y[i] > 0]
@@ -28,7 +28,7 @@ if abspath(PROGRAM_FILE) == @__FILE__
     u = rand(-10:10, 10)
 
     x_u, y_u, z_u = lagrangian_subproblem(u, d, K)
-    x, y, z = lagrangean_heuristic(n, d, x_u, y_u)
+    x, y, z = lagrangian_heuristic(n, d, x_u, y_u)
 
     print("lower bound: $z_u")
     print("upper bound: $z")
