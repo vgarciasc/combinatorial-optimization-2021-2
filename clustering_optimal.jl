@@ -1,5 +1,6 @@
 using Gurobi, JuMP
 using Plots
+include("lagrangian_subproblem.jl")
 
 dist(a, b) = sqrt((a[1] - b[1])^2 + (a[2] - b[2])^2)
 
@@ -8,6 +9,10 @@ pts = [[1 1], [1 4], [1 5], [2 3], [2 5], [3 4], [4 2], [5 1], [6 2], [6 6]]
 n = length(pts)
 N = 1:n
 d = [dist(pts[i], pts[j]) for i in N, j in N]
+
+println(
+    "Lagrangian: ", lagrangian_subproblem(1:n, d, K)
+)
 
 model = Model(Gurobi.Optimizer)
 @variable(model, x[i in N, j in N] >= 0)
