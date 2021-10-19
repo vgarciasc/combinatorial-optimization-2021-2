@@ -2,7 +2,7 @@ using Gurobi, JuMP
 
 include("graph_helper.jl")
 
-n, m, edges = read_graph_from_txt("data/1dc_15.txt")
+m, n, edges = read_graph_from_txt("data/1dc_15.txt")
 # n, m, edges = read_graph_from_txt("data/1dc_64.txt")
 I = 1:m
 J = 1:n
@@ -17,3 +17,5 @@ optimize!(model)
 
 stable_set = [j for j in J if value(x[j]) > 0]
 println("found stable set of size $(length(stable_set)): $stable_set")
+
+# plot_graph((m, n, edges), stable_set)
