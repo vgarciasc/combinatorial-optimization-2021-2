@@ -24,6 +24,7 @@ function solve_set_packing(with_cut=true)
     J_i(i) = edges[i]
 
     global explored = []
+    @time cliques = bron_kerbosch_2(G, [], 1:n, [])
 
     model = Model(Gurobi.Optimizer)
 
