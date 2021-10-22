@@ -74,20 +74,19 @@ function run_basic_clustering(filename)
     n = length(pts)
     @time d, _ = calc_distance_matrix(pts)
 
-    @time is_solved, x, y, z_upper, z_lower, hist_u, hist_l = subgradient(n, d, K, ϵ=0.1, ρ_min=0.0001, MAX_ITER=10000, THRESHOLD=0.5)
+    @time is_solved, x, y, w, z_upper, z_lower, hist_u, hist_l = subgradient(n, d, K, α=0, ϵ=0.1, ρ_min=0.0001, MAX_ITER=20000, THRESHOLD=0.5)
     println("Optimality gap: $((z_upper - z_lower) / z_upper)")
 
-    pyplot()
     scatter([pt[1] for pt in pts], [pt[2] for pt in pts], label="", msw=0, color=:lightgrey, markersize=5, xlabel="x1", ylabel="x2")
     p1 = plot(1:length(hist_u), hcat(hist_u, hist_l), 
               label=["upper bound" "lower bound"], 
               legend=:topright, 
               xlabel="iterations",
               ylabel="value",
-            #   ylim=(0, maximum(hist_u))
-              ylim=(quantile(hist_l, 0.2), maximum(hist_u))
+              ylim=(0, maximum(hist_u))
+            #   ylim=(quantile(hist_l, 0.2), maximum(hist_u))
               )
-    p2 = plot_2d_solution(pts, x, y, K)
+    p2 = plot_2d_solution(pts, x, y, w, K)
     # plot(p1, p2, layout=(2, 1), title="solution: $(round(z_upper, digits=2))")
 end
 
@@ -190,5 +189,25 @@ function run_clustering_for_classification()
 end
 
 if abspath(PROGRAM_FILE) == @__FILE__
-    run_basic_clustering("data/clustering/dim032.txt")
+    filename = "data/clustering/a1.txt"
+    K, pts = read_points_from_file(filename)
+    n = length(pts)
+    
+    @time d, _ = calc_distance_matrix(pts)
+
+    @time is_solved, x, y, w, z_upper, z_lower, hist_u, hist_l = subgradient(n, d, K, α=0.2, ϵ=0.1, ρ_min=0.0001, MAX_ITER=10000, THRESHOLD=0.5)
+    println("Optimality gap: ($z_upper - $z_lower) / $z_upper = $((z_upper - z_lower) / z_upper)")
+
+    pyplot()
+    scatter([pt[1] for pt in pts], [pt[2] for pt in pts], label="", msw=0, color=:lightgrey, markersize=5, xlabel="x1", ylabel="x2")
+    p1 = plot(1:length(hist_u), hcat(hist_u, hist_l), 
+              label=["upper bound" "lower bound"], 
+              legend=:topright, 
+              xlabel="iterations",
+              ylabel="value",
+              ylim=(0, maximum(hist_u))
+            #   ylim=(quantile(hist_l, 0.2), maximum(hist_u))
+              )
+    p2 = plot_2d_solution(pts, x, y, w, K)
+    # plot(p1, p2, layout=(2, 1), title="solution: $(round(z_upper, digits=2))")
 end

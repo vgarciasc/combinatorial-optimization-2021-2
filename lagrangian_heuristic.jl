@@ -1,40 +1,80 @@
+include("plotting_helper.jl")
 include("lagrangian_subproblem.jl")
 
-function lagrangian_heuristic(n, d, x_s, y_s)
+function lagrangian_heuristic(n, d, α, x_s, y_s, w_s)
+    if α > 0
+        return lagrangian_heuristic_outliers(n, d, α, x_s, y_s, w_s)
+    end
+
     N = 1:n
-    x, y = copy(x_s), copy(y_s)
-    C = [i for i in N if y[i] > 0]
+    x, y, w = copy(x_s), copy(y_s), copy(w_s)
+    P = [i for i in N if y[i] > 0]
     for i in N
-        if sum(x[i, j] for j in N) != 1
+        x[i, :] .= 0
+        if w[i] == 0 # point not an outlier
             # point not in any cluster, or in many clusters
             # either way, label it to closest cluster only
-            closest_c = C[sortperm([d[i, c] for c in C])[1]]
-            x[i, :] .= 0
-            x[i, closest_c] = 1
+            closest_p = P[sortperm([d[i, p] for p in P])[1]]
+            x[i, closest_p] = 1
         end
     end
     z = sum(d[i, j] * x[i, j] for i in N, j in N)
-    return x, y, z
+
+    x, y, w, z
+end
+
+function lagrangian_heuristic_outliers(n, d, α, x_s, y_s, w_s)
+    N = 1:n
+    x, y, w = copy(x_s), copy(y_s), copy(w_s)
+    P = [i for i in N if y[i] > 0]
+    C = floor(Int, α * n)
+    dists = []
+    for i in N
+        x[i, :] .= 0
+        # point not in any cluster, or in many clusters
+        # either way, label it to closest cluster only
+        closest_cluster = P[sortperm([d[i, p] for p in P])[1]]
+        x[i, closest_cluster] = 1
+        push!(dists, (i, closest_cluster, d[i, closest_cluster]))
+    end
+    w .= 0
+    for (i, j, dist) in sort(dists, by=a->-a[3])[1:C]
+        x[i, :] .= 0
+        w[i] = 1
+    end
+
+    z = sum(d[i, j] * x[i, j] for i in N, j in N)
+
+    x, y, w, z
 end
 
 if abspath(PROGRAM_FILE) == @__FILE__
     dist(a, b) = sqrt((a[1] - b[1])^2 + (a[2] - b[2])^2)
-
-    K = 3
-    pts = [[1 1], [1 4], [1 5], [2 3], [2 5], [3 4], [4 2], [5 1], [6 2], [6 6]]
+    K = 2
+    pts = [[rand() * 10, rand() * 10] for _ in 1:500]
     n = length(pts)
     N = 1:n
     d = [dist(pts[i], pts[j]) for i in N, j in N]
-    u = rand(-10:10, 10)
+    u = rand(n) * 10
+    α = 0.2
 
-    x_u, y_u, z_u = lagrangian_subproblem(u, d, K)
-    x, y, z = lagrangian_heuristic(n, d, x_u, y_u)
+    x_u, y_u, w_u, z_u = lagrangian_subproblem(u, d, K, α)
+    x, y, w, z = lagrangian_heuristic(n, d, x_u, y_u, w_u)
+    x2, y2, w2, z2 = lagrangian_heuristic_2(n, d, α, x_u, y_u, w_u)
 
     print("lower bound: $z_u")
-    print("upper bound: $z")
+    print("upper bound 1: $z")
+    print("upper bound 2: $z2")
+
+    plot_2d_solution(pts, x, y, w, K)
+    plot_2d_solution(pts, x2, y2, w2, K)
 
     # guaranteeing constraints
     print(sum(y) == K)
     print(all([x[i,j] <= y[j] for i in N, j in N]))
-    print(all([sum(x[i, :]) == 1 for i in N]))
+    print(all([sum(x[i, :]) == 1 - w[i] for i in N]))
+    
+    print(sum(y2) == K)
+    print(all([x2[i,j] <= y2[j] for i in N, j in N]))
+    print(all([sum(x2[i, :]) == 1 - w2[i] for i in N]))
 end
