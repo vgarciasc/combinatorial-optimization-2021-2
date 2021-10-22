@@ -17,7 +17,7 @@ Parâmetros: https://www.gurobi.com/documentation/9.1/refman/parameters.html
 include("graph_helper.jl")
 include("sp_cut_callback.jl")
 
-data = 8
+data = 256
 with_cut = true
 
 println("")
@@ -33,11 +33,16 @@ J = 1:n
 J_i(i) = edges[i]
 
 global explored = []
+global empty1 = Array{Int}([])
+global empty2 = Array{Int}([])
+global adj_list = make_adjacent_list(G)
+global adj_include = [append!([xv], adj_list[xv]) for xv in 1:n]
+global flag_all_explored = false
 
-if with_cut
-    print("Cliques finding time: ")
-    @time cliques = bron_kerbosch_2(G, [], 1:n, [])
-end
+# if with_cut
+#     print("Cliques finding time: ")
+#     @time cliques = bron_kerbosch_2(G, [], 1:n, [])
+# end
 
 model = Model(Gurobi.Optimizer)
 
@@ -45,7 +50,7 @@ MOI.set(model, MOI.RawParameter("PreCrush"), 1) # Habilitar cortes do tipo UserC
 MOI.set(model, MOI.RawParameter("Cuts"), 0) # Desabilitar cortes
 MOI.set(model, MOI.RawParameter("Presolve"), 0) # Desabilitar presolve
 MOI.set(model, MOI.RawParameter("Heuristics"), 0) # Desabilitar heurísticas
-MOI.set(model, MOI.RawParameter("OutputFlag"), 0) # Desabilitar log  
+# MOI.set(model, MOI.RawParameter("OutputFlag"), 0) # Desabilitar log  
 
 @variable(model, x[j in J], Bin)
 @constraint(model, mutual_exclusion[i in I], sum(x[j] for j in J_i(i)) <= 1)
@@ -53,7 +58,7 @@ MOI.set(model, MOI.RawParameter("OutputFlag"), 0) # Desabilitar log
 @objective(model, Max, sum(x[j] for j in J))
 
 if with_cut
-    MOI.set(model, MOI.UserCutCallback(), sp_cut_callback)
+    MOI.set(model, MOI.UserCutCallback(), sp_cut_callback_one_cut)
 end
 @time optimize!(model)
 
@@ -61,4 +66,4 @@ stable_set = [j for j in J if value(x[j]) > 10^-10]
 println("X: $([value(x[j]) for j in stable_set])")
 println("found stable set of size $(length(stable_set)): $stable_set")
 println("Explored: $(node_count(model))")
-plot_graph((m, n, edges), stable_set)
+# plot_graph((m, n, edges), stable_set)
