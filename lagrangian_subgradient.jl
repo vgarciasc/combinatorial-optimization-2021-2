@@ -4,7 +4,7 @@ include("lagrangian_subproblem.jl")
 include("lagrangian_heuristic.jl")
 include("plotting_helper.jl")
 
-function subgradient(n, d, K; ϵ=0.1, ρ_min = 0.001, MAX_ITER=1000, THRESHOLD=0.5)
+function subgradient(n, d, K; ϵ=0.1, ρ_min = 0.001, MAX_ITER=1000, THRESHOLD=0.5, θ = 1)
     N = 1:n
     u = zeros(n)
 
@@ -12,9 +12,10 @@ function subgradient(n, d, K; ϵ=0.1, ρ_min = 0.001, MAX_ITER=1000, THRESHOLD=0
     is_solved = false
     x_upper, y_upper, z_upper = nothing, nothing, +Inf
     z_lower = -Inf
-    ρ = 2
+    ρ = 2    
     
     improve = 0
+    G_k = zeros(n)
 
     for k in 1:MAX_ITER
         if k == MAX_ITER
@@ -43,7 +44,7 @@ function subgradient(n, d, K; ϵ=0.1, ρ_min = 0.001, MAX_ITER=1000, THRESHOLD=0
             end
         end
 
-        G_k = [(1 - sum(x_u[i, j] for j in N)) for i in N]
+        G_k = θ * [(1 - sum(x_u[i, j] for j in N)) for i in N]
         T = ρ * (z_k - z_lower) / sum(g^2 for g in G_k)
         u = u + (1 + ϵ) * T * G_k
 

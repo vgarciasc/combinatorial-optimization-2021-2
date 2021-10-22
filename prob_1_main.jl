@@ -10,14 +10,15 @@ function calc_distance_matrix(X)
     d = zeros(n, n)
     X = hcat(pts...)'
 
-    X = standardize(UnitRangeTransform, X, dims=1)
+    dt = fit(UnitRangeTransform, X, dims=1)
+    StatsBase.transform(dt, X)
 
     for i in 1:n
         for j in 1:n
             d[i, j] = norm(X[i, :] - X[j, :])
         end
     end
-    d
+    d, dt
 end
 
 function read_points_from_file(filename)
@@ -71,21 +72,23 @@ end
 function run_basic_clustering(filename)
     K, pts = read_points_from_file(filename)
     n = length(pts)
-    @time d = calc_distance_matrix(pts)
+    @time d, _ = calc_distance_matrix(pts)
 
-    @time is_solved, x, y, z_upper, z_lower, hist_u, hist_l = subgradient(n, d, K, ϵ=0.1, ρ_min=0.0001, MAX_ITER=5000, THRESHOLD=0.5)
+    @time is_solved, x, y, z_upper, z_lower, hist_u, hist_l = subgradient(n, d, K, ϵ=0.1, ρ_min=0.0001, MAX_ITER=10000, THRESHOLD=0.5)
+    println("Optimality gap: $((z_upper - z_lower) / z_upper)")
 
     pyplot()
     scatter([pt[1] for pt in pts], [pt[2] for pt in pts], label="", msw=0, color=:lightgrey, markersize=5, xlabel="x1", ylabel="x2")
     p1 = plot(1:length(hist_u), hcat(hist_u, hist_l), 
-            label=["upper bound" "lower bound"], 
-            legend=:topright, 
-            xlabel="iterations",
-            ylabel="value",
-            ylim=(quantile(hist_l, 0.2), maximum(hist_u))
-            )
+              label=["upper bound" "lower bound"], 
+              legend=:topright, 
+              xlabel="iterations",
+              ylabel="value",
+            #   ylim=(0, maximum(hist_u))
+              ylim=(quantile(hist_l, 0.2), maximum(hist_u))
+              )
     p2 = plot_2d_solution(pts, x, y, K)
-    plot(p1, p2, layout=(2, 1), title="solution: $(round(z_upper, digits=2))")
+    # plot(p1, p2, layout=(2, 1), title="solution: $(round(z_upper, digits=2))")
 end
 
 function run_clustering_for_classification()
@@ -111,7 +114,7 @@ function run_clustering_for_classification()
         test_pts, test_lbs = test[:, 1:end-1], test[:, end]
 
         n = size(training_pts, 1)
-        d = calc_distance_matrix(training_pts)
+        d, dt = calc_distance_matrix(training_pts)
 
         @time is_solved, x, y, z_upper, z_lower, hist_u, hist_l = subgradient(n, d, K, ϵ=0.1, ρ_min=0.0001, MAX_ITER=10000, THRESHOLD=0.5)
         
@@ -154,8 +157,32 @@ function run_clustering_for_classification()
             assigned_label = [assigned_label for (cl, assigned_label) in cluster_label_pairings if cl == cluster][1]
             push!(predicted_clusters, [(idx, pt, label, (label == assigned_label ? 1 : 0)) for (idx, pt, label) in pts_per_cluster[cluster]])
         end
+
+        correct = 0
+        test_pts = StatsBase.transform(dt, test_pts)
+        for i in 1:size(test_pts, 1)
+            pt, lb = test_pts[i, :], test_lbs[i]
+
+            best_dist = 10000
+            assigned_cluster = -1
+            for k in 1:K
+                cdist = norm(StatsBase.transform(dt, pt') - StatsBase.transform(dt, training_pts[cluster_centers[k], :]'))
+                if cdist < best_dist
+                    assigned_cluster = k
+                    best_dist = cdist
+                end
+            end
+            
+            _, assigned_label = filter(a -> a[1] == assigned_cluster, cluster_label_pairings)[1]
+            if lb == assigned_label
+                correct += 1
+            end
+
+            cluster_label_pairings
+        end
         
         accuracy = sum([sum([correct for (_,_,_,correct) in predicted_clusters[k]]) for k in 1:K]) / n
+        # accuracy = correct / size(test_pts, 1)
         push!(accuracies, accuracy)
     end
 
@@ -163,5 +190,5 @@ function run_clustering_for_classification()
 end
 
 if abspath(PROGRAM_FILE) == @__FILE__
-    run_basic_clustering("data/clustering/r15.txt")
+    run_basic_clustering("data/clustering/dim032.txt")
 end
