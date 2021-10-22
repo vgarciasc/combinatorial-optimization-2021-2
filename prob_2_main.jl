@@ -37,12 +37,15 @@ global empty1 = Array{Int}([])
 global empty2 = Array{Int}([])
 global adj_list = make_adjacent_list(G)
 global adj_include = [append!([xv], adj_list[xv]) for xv in 1:n]
+global degree = [length(l) for l in adj_list]
+global most_degree = sortperm(degree, rev=true)
 global flag_all_explored = false
 
-# if with_cut
-#     print("Cliques finding time: ")
-#     @time cliques = bron_kerbosch_2(G, [], 1:n, [])
-# end
+if with_cut
+    print("Cliques finding time: ")
+    @time cliques = bron_kerbosch_2_with_adj_list(adj_list, [], 1:n, [])
+    # sort!(cliques, by=length, rev=true)
+end
 
 model = Model(Gurobi.Optimizer)
 
@@ -58,7 +61,7 @@ MOI.set(model, MOI.RawParameter("Heuristics"), 0) # Desabilitar heurísticas
 @objective(model, Max, sum(x[j] for j in J))
 
 if with_cut
-    MOI.set(model, MOI.UserCutCallback(), sp_cut_callback_one_cut)
+    MOI.set(model, MOI.UserCutCallback(), sp_cut_callback)
 end
 @time optimize!(model)
 
