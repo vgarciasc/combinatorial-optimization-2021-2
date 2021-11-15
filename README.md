@@ -1,6 +1,6 @@
-# Otimização Combinatória 2021/2 - Trabalho prático
+# Otimização Combinatória 2021/2 - Atividades práticas
 
-## ideias
-
-- transformar a quantidade de clusters em algo variável e penalizar aumento na f.obj
-- permitir que certos pontos não sejam atendidos por cluster nenhum (ideia do prof.)
+> **Professor**: Abilio Lucena  
+> **Estudantes:** Henrique Ferreira e Vinícius Garcia  
+> **Descrição**: Uma implementação do método do subgradiente para o problema de agrupamentos homogêneos (com e sem outliers), assim como de técnicas *branch-and-cut* para o problema de *vertex packing* (conjunto independente de máxima cardinalidade em um grafo qualquer).
+ 
