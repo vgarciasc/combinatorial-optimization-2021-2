@@ -4,15 +4,15 @@ include("lagrangian_subproblem.jl")
 include("lagrangian_heuristic.jl")
 include("plotting_helper.jl")
 
-function subgradient(n, d, K; α=0, ϵ=0.1, ρ_min = 0.001, MAX_ITER=1000, THRESHOLD=0.5, θ = 1, verbose = false)
+function subgradient(n, d, K; 
+                     x_start=nothing, y_start=nothing, w_start=nothing, z_upper_start=Inf, z_lower_start=-Inf, u_start=zeros(n),
+                     α=0, ϵ=0.1, ρ_min = 0.001, MAX_ITER=1000, THRESHOLD=0.5, θ = 1, heuristic = 1, verbose = false)
     N = 1:n
-    u = zeros(n)
-
     hist_u, hist_l = [], []
     is_solved = false
-    x_upper, y_upper, w_upper, z_upper = nothing, nothing, nothing, +Inf
-    z_lower = -Inf
-    u = zeros(n)
+    x_upper, y_upper, w_upper, z_upper = x_start, y_start, w_start, z_upper_start
+    z_lower = z_lower_start
+    u = u_start
     ρ = 2    
     
     improve = 0
@@ -27,7 +27,7 @@ function subgradient(n, d, K; α=0, ϵ=0.1, ρ_min = 0.001, MAX_ITER=1000, THRES
         end
 
         x_u, y_u, w_u, z_lower = lagrangian_subproblem(u, d, K, α)
-        x_k, y_k, w_k, z_k = lagrangian_heuristic(n, d, α, x_u, y_u, w_u)
+        x_k, y_k, w_k, z_k = lagrangian_heuristic(n, d, α, x_u, y_u, w_u, heuristic=heuristic)
 
         if z_k < z_upper
             x_upper, y_upper, w_upper = x_k, y_k, w_k
@@ -75,7 +75,7 @@ function subgradient(n, d, K; α=0, ϵ=0.1, ρ_min = 0.001, MAX_ITER=1000, THRES
     println("\tz_k (upper): $z_upper")
     println("\tz_u (lower): $z_lower")
     println("\tclusters: $([i for i in N if y_upper[i] > 0])")
-    is_solved, x_upper, y_upper, w_upper, z_upper, z_lower, hist_u, hist_l
+    is_solved, x_upper, y_upper, w_upper, z_upper, z_lower, u, hist_u, hist_l
 end
 
 if abspath(PROGRAM_FILE) == @__FILE__

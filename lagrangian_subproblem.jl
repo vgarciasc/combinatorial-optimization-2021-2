@@ -69,7 +69,7 @@ if abspath(PROGRAM_FILE) == @__FILE__
     n = length(pts)
     N = 1:n
     d = [dist(pts[i], pts[j]) for i in N, j in N]
-    u = rand(n) * 10
+    u = rand(n) * 100
     α = 0.5
     
     # scatter([pt[1] for pt in pts], [pt[2] for pt in pts], label="", msw=0, color=:lightgrey, markersize=5, xlabel="x1", ylabel="x2")

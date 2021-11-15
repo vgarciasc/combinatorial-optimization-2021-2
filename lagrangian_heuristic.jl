@@ -1,8 +1,8 @@
 include("plotting_helper.jl")
 include("lagrangian_subproblem.jl")
 
-function lagrangian_heuristic(n, d, α, x_s, y_s, w_s)
-    if α > 0
+function lagrangian_heuristic(n, d, α, x_s, y_s, w_s; heuristic=1)
+    if α > 0 && heuristic != 1
         return lagrangian_heuristic_outliers(n, d, α, x_s, y_s, w_s)
     end
 
@@ -51,23 +51,28 @@ end
 if abspath(PROGRAM_FILE) == @__FILE__
     dist(a, b) = sqrt((a[1] - b[1])^2 + (a[2] - b[2])^2)
     K = 2
-    pts = [[rand() * 10, rand() * 10] for _ in 1:500]
+    # pts = [[rand() * 10, rand() * 10] for _ in 1:500]
     n = length(pts)
     N = 1:n
     d = [dist(pts[i], pts[j]) for i in N, j in N]
-    u = rand(n) * 10
+    u = rand(n) * 100
     α = 0.2
 
     x_u, y_u, w_u, z_u = lagrangian_subproblem(u, d, K, α)
-    x, y, w, z = lagrangian_heuristic(n, d, x_u, y_u, w_u)
-    x2, y2, w2, z2 = lagrangian_heuristic_2(n, d, α, x_u, y_u, w_u)
+    x, y, w, z = lagrangian_heuristic(n, d, α, x_u, y_u, w_u)
+    x2, y2, w2, z2 = lagrangian_heuristic_outliers(n, d, α, x_u, y_u, w_u)
 
     print("lower bound: $z_u")
     print("upper bound 1: $z")
     print("upper bound 2: $z2")
 
-    plot_2d_solution(pts, x, y, w, K)
-    plot_2d_solution(pts, x2, y2, w2, K)
+    pyplot()
+    p1 = plot_2d_solution_multiple_clusters(pts, x_u, y_u, w_u, K)
+    p2 = plot_2d_solution(pts, x, y, w, K)
+    p3 = plot_2d_solution(pts, x2, y2, w2, K)
+    
+    plot(p1, p2, p3, layout=(1, 3))
+    plot!(size=(1200, 400))
 
     # guaranteeing constraints
     print(sum(y) == K)
